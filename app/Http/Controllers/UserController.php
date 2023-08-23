@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Validator;
 
 class UserController extends Controller
 {
@@ -31,16 +33,27 @@ class UserController extends Controller
     }
     function login(Request $req)
     {
-
-        $user = User::where('email', $req->input('email'))->first();
-        if (!$user) {
-            return response()->json(['message' => 'Failed to login', 'reason' => 'User not found'], 500);
+        $input = $req->all();
+        $validation = validator($input, [
+            'email' => 'required|email',
+            'password' => 'required'
+        ]);
+        if ($validation->fails()) {
+            return response()->json(['message' => $validation->errors()], 422);
         }
 
-        if (Hash::check($req->password, $user->password)) {
-            return response()->json(['message' => 'Login successful'], 200);
+
+        if (Auth::attempt(['email' => $req->input('email'), 'password' => $req->input('password')])) {
+            $user = Auth::user();
+            $token = $user->createToken('Token Name')->accessToken;
+            return response()->json(['message' => 'Login successful', 'token' => $token, 'user' => $user], 200);
         } else {
             return response()->json(['message' => 'Failed to login', 'reason' => 'Incorrect password'], 500);
         }
+    }
+    function userDetails()
+    {
+        $user=Auth::guard('api')->user();
+        return response()->json(['user' => $user], 200);
     }
 }

@@ -20,6 +20,15 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 
 Route::post('/register', [UserController::class, 'register']);
+
+Route::group(['middleware'=>'auth:api'], function(){
+    Route::get('/userdetails',[UserController::class,'userDetails']);
+    Route::get('/getproducts',[productController::class,'getProducts']);
+
+});
+
 Route::post('/login', [UserController::class, 'login']);
 
 Route::post('/addproduct',[productController::class,'addProduct']);
+
+
