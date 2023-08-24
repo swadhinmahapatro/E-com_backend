@@ -19,6 +19,7 @@ class productController extends Controller
         // return response()->json(['message'=>'Product added successfully'],200);
         return $product;
     }
+    
     function getProducts(){
         if(Auth::guard('api')->check()){
             $products=Product::all();

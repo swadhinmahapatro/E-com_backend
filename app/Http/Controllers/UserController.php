@@ -41,8 +41,7 @@ class UserController extends Controller
         if ($validation->fails()) {
             return response()->json(['message' => $validation->errors()], 422);
         }
-
-
+        
         if (Auth::attempt(['email' => $req->input('email'), 'password' => $req->input('password')])) {
             $user = Auth::user();
             $token = $user->createToken('Token Name')->accessToken;
