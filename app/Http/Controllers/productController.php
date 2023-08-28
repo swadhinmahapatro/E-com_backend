@@ -16,7 +16,7 @@ class productController extends Controller
         $product->price = $req->input('price');
         $product->type = $req->input('type');
         $product->description = $req->input('description');
-        $product->file_path = $req->file('file')->store('products', ['max_file_size' => '4MB']);
+        $product->file_path = $req->file('file')->store('public/products', ['max_file_size' => '4MB']);
         $product->save();
         // return response()->json(['message'=>'Product added successfully'],200);
         return $product;
@@ -26,11 +26,18 @@ class productController extends Controller
     {
         if (Auth::guard('api')->check()) {
             $products = Product::all();
-            return response()->json(['products' => $products], 200);
+
+            $productsWithImageUrls = $products->map(function ($product) {
+                $product->image_url = asset('storage/' . $product->file_path);
+                return $product;
+            });
+
+            return response()->json(['products' => $productsWithImageUrls], 200);
         } else {
             return response()->json(['message' => 'Unauthorized'], 401);
         }
     }
+
     function deleteProduct($id)
     {
         try {

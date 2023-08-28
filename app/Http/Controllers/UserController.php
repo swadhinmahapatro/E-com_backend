@@ -41,18 +41,19 @@ class UserController extends Controller
         if ($validation->fails()) {
             return response()->json(['message' => $validation->errors()], 422);
         }
-        
+
         if (Auth::attempt(['email' => $req->input('email'), 'password' => $req->input('password')])) {
             $user = Auth::user();
             $token = $user->createToken('Token Name')->accessToken;
-            return response()->json(['message' => 'Login successful', 'token' => $token, 'user' => $user], 200);
+            $refreshToken = $user->createToken('Refresh Token')->accessToken;
+            return response()->json(['message' => 'Login successful', 'token' => $token, 'refresh_token' => $refreshToken, 'user' => $user], 200);
         } else {
             return response()->json(['message' => 'Failed to login', 'reason' => 'Incorrect password'], 500);
         }
     }
     function userDetails()
     {
-        $user=Auth::guard('api')->user();
+        $user = Auth::guard('api')->user();
         return response()->json(['user' => $user], 200);
     }
 }
