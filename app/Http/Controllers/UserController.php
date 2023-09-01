@@ -16,6 +16,13 @@ class UserController extends Controller
 {
     function register(Request $req)
     {
+        $validation = $req->validate([
+            'name' => 'required',
+            'email' => 'required|email',
+            'number' => 'required',
+            'dob' => 'required',
+            'password' => 'required'
+        ]);
 
         $user = new User;
         $user->name = $req->input('name');
@@ -24,10 +31,10 @@ class UserController extends Controller
         $user->dob = $req->input('dob');
         $user->admin = false;
         $user->password = Hash::make($req->input('password'));
+
         try {
             $user->save();
             Mail::to($user->email)->send(new Welcomemail($user));
-            // dd('email send sucessfully');
             return response()->json(['message' => 'User registered successfully'], 200);
         } catch (QueryException $e) {
             if ($e->getCode() == '23000') {
@@ -38,27 +45,71 @@ class UserController extends Controller
     }
     function login(Request $req)
     {
-        $input = $req->all();
-        $validation = validator($input, [
-            'email' => 'required|email',
-            'password' => 'required'
-        ]);
-        if ($validation->fails()) {
-            return response()->json(['message' => $validation->errors()], 422);
-        }
+        try {
+            $input = $req->all();
+            $validation = validator($input, [
+                'email' => 'required|email',
+                'password' => 'required'
+            ]);
+            if ($validation->fails()) {
+                return response()->json(['message' => $validation->errors()], 422);
+            }
 
-        if (Auth::attempt(['email' => $req->input('email'), 'password' => $req->input('password')])) {
-            $user = Auth::user();
-            $token = $user->createToken('Token Name')->accessToken;
-            $refreshToken = $user->createToken('Refresh Token')->accessToken;
-            return response()->json(['message' => 'Login successful', 'token' => $token, 'refresh_token' => $refreshToken, 'user' => $user], 200);
-        } else {
-            return response()->json(['message' => 'Failed to login', 'reason' => 'Incorrect password'], 500);
-        }
+            if (Auth::attempt(['email' => $req->input('email'), 'password' => $req->input('password')])) {
+                $user = Auth::user();
+                $token = $user->createToken('Token Name')->accessToken;
+                $refreshToken = $user->createToken('Refresh Token')->accessToken;
+                return response()->json(['message' => 'Login successful', 'token' => $token, 'refresh_token' => $refreshToken, 'user' => $user], 200);
+            } else {
+                return response()->json(['message' => 'Failed to login', 'reason' => 'Incorrect password'], 500);
+            }
+        } catch (QueryException $e) {
+            return response()->json(['message' => 'Failed to login'], 500);}
     }
     function userDetails()
     {
         $user = Auth::guard('api')->user();
         return response()->json(['user' => $user], 200);
+    }
+    function getUserById($id)
+    {
+        try {
+            if (Auth::guard('api')) {
+                $user = User::find($id);
+                return response()->json(['user' => $user], 200);
+            }
+        } catch (QueryException $e) {
+            return response()->json(['message' => 'User not found'], 404);
+        }
+    }
+    function updateUserDetailsById($id, Request $req)
+    {
+        if (Auth::guard('api')) {
+            $user = User::find($id);
+
+            if ($req->has('name')) {
+                $user->name = $req->input('name');
+            }
+            if ($req->has('email')) {
+                $user->email = $req->input('email');
+            }
+            if ($req->has('number')) {
+                $user->number = $req->input('number');
+            }
+            if ($req->has('dob')) {
+                $user->dob = $req->input('dob');
+            }
+            if ($req->has('password')) {
+                $user->dob = Hash::make($req->input('password'));
+            }
+            try {
+                $user->save();
+                return response()->json(['user' => $user], 200);
+            } catch (QueryException $e) {
+                if ($e->getCode() == '23000') {
+                    return response()->json(['message' => 'Failed to Update user. Email or phone number already taken.'], 500);
+                }
+            }
+        }
     }
 }

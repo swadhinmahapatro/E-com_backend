@@ -31,6 +31,10 @@ Route::group(['middleware'=>'auth:api'], function(){
     Route::post('/addproduct',[productController::class,'addProduct']);
 
     Route::delete('/deleteproduct/{id}',[productController::class,'deleteProduct']);
+
+    Route::get("/getuser/{id}",[UserController::class,'getUserById']);
+
+    Route::post("/updateuser/{id}",[UserController::class,'updateUserDetailsById']);
 });
 
 
