@@ -8,6 +8,8 @@ use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\Welcomemail;
 use Validator;
 
 class UserController extends Controller
@@ -20,9 +22,12 @@ class UserController extends Controller
         $user->email = $req->input('email');
         $user->number = $req->input('number');
         $user->dob = $req->input('dob');
+        $user->admin = false;
         $user->password = Hash::make($req->input('password'));
         try {
             $user->save();
+            Mail::to($user->email)->send(new Welcomemail($user));
+            // dd('email send sucessfully');
             return response()->json(['message' => 'User registered successfully'], 200);
         } catch (QueryException $e) {
             if ($e->getCode() == '23000') {
