@@ -64,7 +64,8 @@ class UserController extends Controller
                 return response()->json(['message' => 'Failed to login', 'reason' => 'Incorrect password'], 500);
             }
         } catch (QueryException $e) {
-            return response()->json(['message' => 'Failed to login'], 500);}
+            return response()->json(['message' => 'Failed to login'], 500);
+        }
     }
     function userDetails()
     {
@@ -84,32 +85,53 @@ class UserController extends Controller
     }
     function updateUserDetailsById($id, Request $req)
     {
-        if (Auth::guard('api')) {
+        if (Auth::guard('api')->check()) { // Check if the user is authenticated
             $user = User::find($id);
 
-            if ($req->has('name')) {
+            // Check if the new password is the same as the existing one
+            if ($req->has('password') && Hash::check($req->input('password'), $user->password)) {
+                return response()->json(['user' => $user, 'message' => 'Your profile data is the same as before'], 200);
+            }
+
+            $updatedFields = []; // To keep track of updated fields
+
+            if ($req->has('name') && $req->input('name') !== $user->name) {
                 $user->name = $req->input('name');
+                $updatedFields[] = 'name';
             }
-            if ($req->has('email')) {
+            if ($req->has('email') && $req->input('email') !== $user->email) {
                 $user->email = $req->input('email');
+                $updatedFields[] = 'email';
             }
-            if ($req->has('number')) {
+            if ($req->has('number') && $req->input('number') !== $user->number) {
                 $user->number = $req->input('number');
+                $updatedFields[] = 'number';
             }
-            if ($req->has('dob')) {
+            if ($req->has('dob') && $req->input('dob') !== $user->dob) {
                 $user->dob = $req->input('dob');
+                $updatedFields[] = 'dob';
             }
             if ($req->has('password')) {
-                $user->dob = Hash::make($req->input('password'));
+                $user->password = Hash::make($req->input('password')); // Update the password
+                $updatedFields[] = 'password';
             }
+
+            if (empty($updatedFields)) {
+                return response()->json(['message' => 'Your profile data is the same as before'], 200);
+            }
+
             try {
                 $user->save();
-                return response()->json(['user' => $user], 200);
+                return response()->json(['user' => $user, 'message' => 'User updated successfully'], 200);
             } catch (QueryException $e) {
                 if ($e->getCode() == '23000') {
-                    return response()->json(['message' => 'Failed to Update user. Email or phone number already taken.'], 500);
+                    return response()->json(['message' => 'Failed to update user. Email or phone number already taken.'], 500);
+                } else {
+                    return response()->json(['message' => 'An error occurred while updating user'], 500);
                 }
             }
+        } else {
+            return response()->json(['message' => 'Unauthorized'], 401); // Return an unauthorized response if not authenticated
         }
     }
 }

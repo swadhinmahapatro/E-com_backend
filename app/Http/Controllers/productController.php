@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\ProductAdded;
 use Illuminate\Http\Request;
 use App\Models\Product;
 use Illuminate\Database\QueryException;
@@ -11,15 +12,24 @@ class productController extends Controller
 {
     function addProduct(Request $req)
     {
-        $product = new Product;
-        $product->name = $req->input('name');
-        $product->price = $req->input('price');
-        $product->type = $req->input('type');
-        $product->description = $req->input('description');
-        $product->file_path = $req->file('file')->store('public/products', ['max_file_size' => '4MB']);
-        $product->save();
-        // return response()->json(['message'=>'Product added successfully'],200);
-        return $product;
+        if (Auth::guard('api')->check()) {
+            try {
+                $product = new Product;
+                $product->name = $req->input('name');
+                $product->price = $req->input('price');
+                $product->type = $req->input('type');
+                $product->description = $req->input('description');
+                $product->file_path = $req->file('file')->store('public/products', ['max_file_size' => '4MB']);
+                $product->save();
+                event(new ProductAdded($product));
+                return response()->json(['message' => 'Product added successfully', 'product' => $product], 200);
+            } catch (\Exception $e) {
+                // Handle the exception here
+
+                return response()->json(['message' => 'An error occurred while adding the product'], 500);
+            }
+        }
+        return response()->json(['message' => 'Unauthorized'], 401);
     }
 
     function getProducts()
@@ -29,6 +39,7 @@ class productController extends Controller
 
             $productsWithImageUrls = $products->map(function ($product) {
                 $product->image_url = asset('storage/' . $product->file_path);
+                $product->image_url = str_replace('/public', '', $product->image_url);
                 return $product;
             });
 
